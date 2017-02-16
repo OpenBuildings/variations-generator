@@ -78,6 +78,9 @@ function generateVariations() {
 
     if (row[0].toLowerCase().trim() == 'sku') {
       columns = row;
+      if (-1 == getColumnByName(columns, 'is generated')) {
+        columns.push('is generated')
+      }
       result.push(columns);
       maxColumns = Math.max(maxColumns, columns.length);
 
@@ -91,6 +94,7 @@ function generateVariations() {
       variation = row.slice();
       variation[getColumnByName(columns, 'variation name')] = generateName(values[j]);
       variation[getColumnByName(columns, 'sku')] = generateSku(variation[getColumnByName(columns, 'sku')], values[j]);
+      variation[getColumnByName(columns, 'is generated')] = +!!j;
 
       for (var k = 0; k < definingProperties.length; k++) {
         variation[getColumnByName(columns, definingProperties[k].trim())] = values[j][k];
