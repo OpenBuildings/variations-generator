@@ -5,25 +5,25 @@ function getColumnByName(row, name) {
       return i;
     }
   }
-  
+
   return -1;
 }
 
 function getDefiningProperties(row, columns, properties) {
   var values = row[getColumnByName(columns, properties.shift())].split(',');
   var result = [];
-  
+
   if (properties.length === 0) {
     for (var i = 0; i < values.length; i++) {
       result.push([values[i].trim()]);
     }
-    
+
     return result;
   }
 
   var nextValues = getDefiningProperties(row, columns, properties);
   var variation = null;
-  
+
   for(var i = 0; i < values.length; i++) {
     for (var j = 0; j < nextValues.length; j++) {
       variation = nextValues[j].slice();
@@ -31,7 +31,7 @@ function getDefiningProperties(row, columns, properties) {
       result.push(variation);
     }
   }
-  
+
   return result;
 }
 
@@ -53,7 +53,7 @@ function generateSku(base, values) {
 function colorHeaders(sheet) {
   var data = sheet.getDataRange().getValues();
   var row = null;
-  
+
   for (var i = 0; i < data.length; i++) {
     row = data[i];
     if (row[0].toLowerCase() == 'sku') {
@@ -66,47 +66,51 @@ function generateVariations() {
   var spreadsheet = SpreadsheetApp.getActive();
   var activeSheet = spreadsheet.getActiveSheet();
   var data = activeSheet.getDataRange().getValues();
-  
+
   var row = null;
   var columns = null;
   var variation = null;
   var result = [];
   var maxColumns = 0;
- 
+
   for (var i = 0; i < data.length; i++) {
     row = data[i];
-    
+
     if (row[0].toLowerCase().trim() == 'sku') {
       columns = row;
+      if (-1 == getColumnByName(columns, 'is generated')) {
+        columns.push('is generated')
+      }
       result.push(columns);
       maxColumns = Math.max(maxColumns, columns.length);
-      
+
       continue;
     }
-    
+
     var definingProperties = row[getColumnByName(columns, 'defining properties')].split(',');
     var values = getDefiningProperties(row, columns, definingProperties.slice());
-    
+
     for (var j = 0; j < values.length; j++) {
       variation = row.slice();
-      variation[getColumnByName(columns, 'variation name')] = generateName(values[j]); 
+      variation[getColumnByName(columns, 'variation name')] = generateName(values[j]);
       variation[getColumnByName(columns, 'sku')] = generateSku(variation[getColumnByName(columns, 'sku')], values[j]);
-      
+      variation[getColumnByName(columns, 'is generated')] = +!!j;
+
       for (var k = 0; k < definingProperties.length; k++) {
         variation[getColumnByName(columns, definingProperties[k].trim())] = values[j][k];
       }
-      
+
       result.push(variation);
-    } 
+    }
   }
-  
+
   var d = new Date();
   var sheetName = 'Generated variations for ' + activeSheet.getName() + ' ' + d.toLocaleTimeString();
   var variationsSheet = spreadsheet.insertSheet(sheetName, spreadsheet.getNumSheets());
-  
+
   variationsSheet.activate();
   variationsSheet.getRange(1, 1, result.length, maxColumns).setValues(result);
-  
+
   colorHeaders(variationsSheet);
 }
 
